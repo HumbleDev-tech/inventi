@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Organizacion {
+  id           String   @id @default(cuid())
+  nombre       String
+  tipo         String?  // "Hospital", "Empresa", "Clínica", etc.
+  createdAt    DateTime @default(now())
+
+  usuarios     UsuarioOrganizacion[]
+  funcionarios Funcionario[]
+  equipos      Equipo[]
+  insumos      Insumo[]
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nombre    String
+  email     String   @unique
+  password  String   // hasheado con bcrypt
+  createdAt DateTime @default(now())
+
+  organizaciones UsuarioOrganizacion[]
+}
+
+model UsuarioOrganizacion {
+  usuarioId      String
+  organizacionId String
+  rol            String @default("ADMIN")
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id])
+  organizacion Organizacion @relation(fields: [organizacionId], references: [id])
+
+  @@id([usuarioId, organizacionId])
+}
+
+model Funcionario {
+  id             String   @id @default(cuid())
+  nombre         String
+  rut            String?
+  cargo          String?
+  departamento   String?
+  telefono       String?
+  email          String?
+  createdAt      DateTime @default(now())
+
+  organizacionId String
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+  equipos        Equipo[]
+}
+
+model Equipo {
+  id             String   @id @default(cuid())
+  tipo           String   // "PC", "Notebook", "Impresora"
+  marca          String?
+  modelo         String?
+  serial         String?
+  ip             String?
+  mac            String?
+  ram            String?
+  estado         String   @default("ACTIVO") // "ACTIVO", "BODEGA", "BAJA"
+  notas          String?
+  createdAt      DateTime @default(now())
+
+  organizacionId String
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+
+  funcionarioId  String?
+  funcionario    Funcionario? @relation(fields: [funcionarioId], references: [id])
+}
+
+model Insumo {
+  id             String   @id @default(cuid())
+  nombre         String   // Ej: "Tóner HP 85A"
+  tipo           String?  // "Tóner", "Tinta"
+  modelo         String?  // Compatible con qué impresora
+  stockActual    Int      @default(0)
+  stockMinimo    Int      @default(2) // Alerta si baja de este número
+  createdAt      DateTime @default(now())
+
+  organizacionId String
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+}
