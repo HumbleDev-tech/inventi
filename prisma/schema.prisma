@@ -52,6 +52,8 @@ model Funcionario {
   organizacionId String
   organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
   equipos        Equipo[]
+
+  @@index([organizacionId])
 }
 
 model Equipo {
@@ -72,6 +74,9 @@ model Equipo {
 
   funcionarioId  String?
   funcionario    Funcionario? @relation(fields: [funcionarioId], references: [id])
+
+  @@index([organizacionId])
+  @@index([funcionarioId])
 }
 
 model Insumo {
@@ -85,4 +90,6 @@ model Insumo {
 
   organizacionId String
   organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+
+  @@index([organizacionId])
 }
