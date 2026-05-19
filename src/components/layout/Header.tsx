@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { UserMenu } from './UserMenu';
 import { ThemeToggle } from './ThemeToggle';
-
+import { MobileMenu } from './MobileMenu';
 
 export async function Header() {
   const session = await auth();
@@ -23,6 +23,7 @@ export async function Header() {
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+      <MobileMenu orgName={orgName} />
       <div className="w-full flex-1">
         {/* Placeholder for future search or breadcrumbs */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

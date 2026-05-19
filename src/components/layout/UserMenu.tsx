@@ -28,7 +28,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
           <AvatarFallback className="bg-primary/10 text-primary">{fallback}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{name || 'Usuario'}</p>
@@ -36,13 +36,12 @@ export function UserMenu({ email, name }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <form action={logout} className="w-full">
-            <button type="submit" className="flex w-full items-center text-red-600 focus:text-red-600 cursor-pointer">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Cerrar sesión</span>
-            </button>
-          </form>
+        <DropdownMenuItem 
+          className="flex w-full items-center text-red-600 focus:text-red-600 cursor-pointer"
+          onClick={() => logout()}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Cerrar sesión</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

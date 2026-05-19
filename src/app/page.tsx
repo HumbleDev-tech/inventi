@@ -1,10 +1,18 @@
-export default function Home() {
-  return (
-    <main className="min-h-screen flex items-center justify-center bg-background text-foreground">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight">InvenTI</h1>
-        <p className="text-muted-foreground">Sistema de Gestión de Activos e Inventario</p>
-      </div>
-    </main>
-  );
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+
+export default async function Home() {
+  const session = await auth();
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  const activeOrgId = cookies().get('activeOrgId')?.value;
+  if (!activeOrgId) {
+    redirect('/select-org');
+  }
+
+  redirect('/dashboard');
 }

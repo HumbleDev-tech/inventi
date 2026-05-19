@@ -1,22 +1,40 @@
-export default function DashboardPage() {
+import { getDashboardData } from '@/actions/dashboard';
+import { DashboardClient } from './DashboardClient';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+export default async function DashboardPage() {
+  const result = await getDashboardData();
+
+  if (!result.success || !result.data) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Resumen general de tu organización.
+          </p>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {result.error || 'Ocurrió un error al cargar el dashboard.'}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">
-          Resumen general de tu organización.
+          Resumen general y métricas clave de tu organización.
         </p>
       </div>
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm p-8">
-        <div className="flex flex-col items-center gap-1 text-center">
-          <h3 className="text-2xl font-bold tracking-tight">
-            Bienvenido a InvenTI
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Aquí se mostrarán las métricas clave de tu inventario.
-          </p>
-        </div>
-      </div>
+      <DashboardClient data={result.data} />
     </div>
   );
 }

@@ -1,9 +1,10 @@
 'use server';
 
-import { signIn, signOut } from '@/auth';
+import { auth, signIn, signOut } from '@/auth';
 import { AuthError } from 'next-auth';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
 
 export async function login(
   prevState: string | undefined,
@@ -25,8 +26,24 @@ export async function login(
 }
 
 export async function selectOrganization(orgId: string) {
-  // En un caso real, aquí deberíamos verificar que el usuario
-  // en sesión (auth()) realmente pertenece a esta organización.
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect('/login');
+  }
+
+  // Verificar pertenencia en la base de datos
+  const membership = await prisma.usuarioOrganizacion.findUnique({
+    where: {
+      usuarioId_organizacionId: {
+        usuarioId: session.user.id,
+        organizacionId: orgId,
+      },
+    },
+  });
+
+  if (!membership) {
+    throw new Error('No autorizado a acceder a esta organización');
+  }
   
   cookies().set('activeOrgId', orgId, {
     httpOnly: true,
