@@ -65,7 +65,7 @@ export async function getInsumoById(id: string) {
 
 export async function createInsumo(data: InsumoInput) {
   try {
-    const { orgId } = await getValidatedSession();
+    const { userId, orgId } = await getValidatedSession();
     
     // Validar Zod
     const validatedData = insumoSchema.parse(data);
@@ -81,6 +81,20 @@ export async function createInsumo(data: InsumoInput) {
       },
     });
 
+    // Registrar movimiento de stock inicial si es mayor que cero
+    if (newInsumo.stockActual > 0) {
+      await prisma.movimientoInsumo.create({
+        data: {
+          insumoId: newInsumo.id,
+          usuarioId: userId,
+          cantidad: newInsumo.stockActual,
+          tipo: 'ENTRADA',
+          motivo: 'Registro inicial de stock',
+          organizacionId: orgId,
+        },
+      });
+    }
+
     revalidatePath('/dashboard/insumos');
     return { success: true, insumo: newInsumo };
   } catch (error: unknown) {
@@ -92,7 +106,7 @@ export async function createInsumo(data: InsumoInput) {
 
 export async function updateInsumo(id: string, data: InsumoInput) {
   try {
-    const { orgId } = await getValidatedSession();
+    const { userId, orgId } = await getValidatedSession();
     
     // Validar pertenencia del insumo a la org
     const existing = await prisma.insumo.findFirst({
@@ -115,6 +129,21 @@ export async function updateInsumo(id: string, data: InsumoInput) {
         stockMinimo: validatedData.stockMinimo,
       },
     });
+
+    // Registrar movimiento si el stock cambió manualmente
+    const stockDiff = validatedData.stockActual - existing.stockActual;
+    if (stockDiff !== 0) {
+      await prisma.movimientoInsumo.create({
+        data: {
+          insumoId: id,
+          usuarioId: userId,
+          cantidad: stockDiff,
+          tipo: stockDiff > 0 ? 'ENTRADA' : 'SALIDA',
+          motivo: 'Actualización manual de stock',
+          organizacionId: orgId,
+        },
+      });
+    }
 
     revalidatePath('/dashboard/insumos');
     revalidatePath(`/dashboard/insumos/${id}`);
@@ -152,9 +181,9 @@ export async function deleteInsumo(id: string) {
   }
 }
 
-export async function adjustInsumoStock(id: string, amount: number) {
+export async function adjustInsumoStock(id: string, amount: number, motivo?: string) {
   try {
-    const { orgId } = await getValidatedSession();
+    const { userId, orgId } = await getValidatedSession();
     
     // Validar pertenencia del insumo a la org
     const existing = await prisma.insumo.findFirst({
@@ -165,11 +194,28 @@ export async function adjustInsumoStock(id: string, amount: number) {
     }
 
     const newStock = Math.max(0, existing.stockActual + amount);
+    const realAmount = newStock - existing.stockActual;
+
+    if (realAmount === 0) {
+      return { success: true, insumo: existing };
+    }
 
     const updated = await prisma.insumo.update({
       where: { id },
       data: {
         stockActual: newStock,
+      },
+    });
+
+    // Registrar el movimiento en la bitácora
+    await prisma.movimientoInsumo.create({
+      data: {
+        insumoId: id,
+        usuarioId: userId,
+        cantidad: realAmount,
+        tipo: realAmount > 0 ? 'ENTRADA' : 'SALIDA',
+        motivo: motivo || (realAmount > 0 ? 'Ajuste rápido: Entrada' : 'Ajuste rápido: Salida'),
+        organizacionId: orgId,
       },
     });
 
@@ -180,5 +226,26 @@ export async function adjustInsumoStock(id: string, amount: number) {
     console.error('Error en adjustInsumoStock:', error);
     const message = error instanceof Error ? error.message : 'Error al ajustar stock';
     return { success: false, error: message };
+  }
+}
+
+export async function getInsumoMovimientos(insumoId: string) {
+  try {
+    const { orgId } = await getValidatedSession();
+    return await prisma.movimientoInsumo.findMany({
+      where: { insumoId, organizacionId: orgId },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (error) {
+    console.error('Error en getInsumoMovimientos:', error);
+    return [];
   }
 }

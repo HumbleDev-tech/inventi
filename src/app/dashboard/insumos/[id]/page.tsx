@@ -1,4 +1,4 @@
-import { getInsumoById } from '@/actions/insumos';
+import { getInsumoById, getInsumoMovimientos } from '@/actions/insumos';
 import { notFound } from 'next/navigation';
 import { EditInsumoClient } from './EditInsumoClient';
 
@@ -10,6 +10,7 @@ interface PageProps {
 
 export default async function DetalleInsumoPage({ params }: PageProps) {
   const insumo = await getInsumoById(params.id);
+  const movimientos = await getInsumoMovimientos(params.id);
 
   if (!insumo) {
     notFound();
@@ -25,5 +26,21 @@ export default async function DetalleInsumoPage({ params }: PageProps) {
     stockMinimo: insumo.stockMinimo,
   };
 
-  return <EditInsumoClient insumo={formattedInsumo} />;
+  const formattedMovimientos = movimientos.map((m) => ({
+    id: m.id,
+    cantidad: m.cantidad,
+    tipo: m.tipo as 'ENTRADA' | 'SALIDA',
+    motivo: m.motivo,
+    createdAt: m.createdAt.toISOString(),
+    usuario: {
+      nombre: m.usuario.nombre,
+    },
+  }));
+
+  return (
+    <EditInsumoClient 
+      insumo={formattedInsumo} 
+      movimientos={formattedMovimientos} 
+    />
+  );
 }

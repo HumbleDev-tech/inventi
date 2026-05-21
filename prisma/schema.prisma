@@ -16,6 +16,8 @@ model Organizacion {
   funcionarios Funcionario[]
   equipos      Equipo[]
   insumos      Insumo[]
+  historialEquipos   HistorialEquipo[]
+  movimientosInsumos MovimientoInsumo[]
 }
 
 model Usuario {
@@ -26,6 +28,8 @@ model Usuario {
   createdAt DateTime @default(now())
 
   organizaciones UsuarioOrganizacion[]
+  historialEquipos   HistorialEquipo[]
+  movimientosInsumos MovimientoInsumo[]
 }
 
 model UsuarioOrganizacion {
@@ -52,6 +56,7 @@ model Funcionario {
   organizacionId String
   organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
   equipos        Equipo[]
+  historialEquipos HistorialEquipo[]
 
   @@index([organizacionId])
 }
@@ -74,6 +79,7 @@ model Equipo {
 
   funcionarioId  String?
   funcionario    Funcionario? @relation(fields: [funcionarioId], references: [id])
+  historial      HistorialEquipo[]
 
   @@index([organizacionId])
   @@index([funcionarioId])
@@ -90,6 +96,46 @@ model Insumo {
 
   organizacionId String
   organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+  movimientos    MovimientoInsumo[]
 
+  @@index([organizacionId])
+}
+
+model HistorialEquipo {
+  id             String       @id @default(cuid())
+  equipoId       String
+  equipo         Equipo       @relation(fields: [equipoId], references: [id], onDelete: Cascade)
+  funcionarioId  String?
+  funcionario    Funcionario? @relation(fields: [funcionarioId], references: [id], onDelete: SetNull)
+  usuarioId      String       // Usuario que realiza el cambio/asignación
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  estado         String       // "ACTIVO", "BODEGA", "BAJA"
+  tipoMovimiento String       // "ASIGNACION", "DEVOLUCION", "CREACION", "BAJA", "MODIFICACION"
+  notas          String?      // Razón del cambio
+  createdAt      DateTime     @default(now())
+  organizacionId String
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@index([equipoId])
+  @@index([funcionarioId])
+  @@index([usuarioId])
+  @@index([organizacionId])
+}
+
+model MovimientoInsumo {
+  id             String       @id @default(cuid())
+  insumoId       String
+  insumo         Insumo       @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  usuarioId      String       // Usuario que registra el movimiento
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+  cantidad       Int          // Ejemplo: +5 (entrada) o -2 (salida)
+  tipo           String       // "ENTRADA", "SALIDA"
+  motivo         String?      // Ej: "Box 3 - Urgencias", "Compra anual de Tóner"
+  createdAt      DateTime     @default(now())
+  organizacionId String
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@index([insumoId])
+  @@index([usuarioId])
   @@index([organizacionId])
 }

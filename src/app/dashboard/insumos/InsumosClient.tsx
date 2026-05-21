@@ -2,12 +2,13 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Search, Package, Plus, Minus, AlertTriangle, Trash2, Edit } from 'lucide-react';
+import { Search, Package, Plus, Minus, AlertTriangle, Trash2, Edit, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { deleteInsumo, adjustInsumoStock } from '@/actions/insumos';
 import { Card, CardContent } from '@/components/ui/card';
+import { exportToCSV } from '@/lib/export';
 
 interface Insumo {
   id: string;
@@ -69,8 +70,20 @@ export function InsumosClient({ initialInsumos }: InsumosClientProps) {
   };
 
   const handleAdjustStock = async (id: string, amount: number) => {
+    const actionWord = amount > 0 ? 'entrada' : 'salida';
+    const motivo = prompt(`Ingrese el motivo para registrar esta ${actionWord} de stock:`);
+    
+    // Si cancela, abortamos
+    if (motivo === null) return;
+    
+    const motivoFinal = motivo.trim();
+    if (!motivoFinal) {
+      alert('Debe ingresar un motivo para registrar el movimiento de stock.');
+      return;
+    }
+
     setAdjustingId(id);
-    const result = await adjustInsumoStock(id, amount);
+    const result = await adjustInsumoStock(id, amount, motivoFinal);
     setAdjustingId(null);
 
     if (result.success && result.insumo) {
@@ -115,6 +128,34 @@ export function InsumosClient({ initialInsumos }: InsumosClientProps) {
               <AlertTriangle className="h-4 w-4" />
               {stockFilter === 'LOW' ? 'Mostrar Todos' : 'Ver Stock Bajo'}
             </Button>
+
+            {(() => {
+              const handleExportCSV = () => {
+                exportToCSV(
+                  filteredInsumos,
+                  [
+                    { header: 'Insumo', key: 'nombre' },
+                    { header: 'Tipo/Categoría', key: 'tipo' },
+                    { header: 'Modelo/Especificación', key: 'modelo' },
+                    { header: 'Stock Mínimo', key: 'stockMinimo' },
+                    { header: 'Stock Actual', key: 'stockActual' },
+                  ],
+                  'insumos'
+                );
+              };
+
+              return (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleExportCSV}
+                  className="w-full sm:w-auto gap-2 border-muted"
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </Button>
+              );
+            })()}
 
             <Link href="/dashboard/insumos/nuevo" className="w-full sm:w-auto">
               <Button className="w-full gap-2 shadow-md hover:shadow-lg transition-all">

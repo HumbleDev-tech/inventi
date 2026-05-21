@@ -78,10 +78,9 @@ export async function getEquipoById(id: string) {
     return null;
   }
 }
-
 export async function createEquipo(data: EquipoInput) {
   try {
-    const { orgId } = await getValidatedSession();
+    const { userId, orgId } = await getValidatedSession();
     
     // Validar Zod
     const validatedData = equipoSchema.parse(data);
@@ -115,6 +114,19 @@ export async function createEquipo(data: EquipoInput) {
       },
     });
 
+    // Registrar historial de creación
+    await prisma.historialEquipo.create({
+      data: {
+        equipoId: newEquipo.id,
+        funcionarioId,
+        usuarioId: userId,
+        estado: validatedData.estado,
+        tipoMovimiento: 'CREACION',
+        notas: 'Registro inicial del equipo en el sistema.',
+        organizacionId: orgId,
+      },
+    });
+
     revalidatePath('/dashboard/equipos');
     return { success: true, equipo: newEquipo };
   } catch (error: unknown) {
@@ -126,7 +138,7 @@ export async function createEquipo(data: EquipoInput) {
 
 export async function updateEquipo(id: string, data: EquipoInput) {
   try {
-    const { orgId } = await getValidatedSession();
+    const { userId, orgId } = await getValidatedSession();
     
     // Validar pertenencia del equipo a la org
     const existing = await prisma.equipo.findFirst({
@@ -168,6 +180,36 @@ export async function updateEquipo(id: string, data: EquipoInput) {
       },
     });
 
+    // Identificar tipo de movimiento y notas para el historial
+    let tipoMovimiento = 'MODIFICACION';
+    let notasHistorial = 'Especificaciones técnicas u observaciones actualizadas.';
+
+    const funcionarioCambio = existing.funcionarioId !== funcionarioId;
+    const estadoCambio = existing.estado !== validatedData.estado;
+
+    if (funcionarioCambio && estadoCambio) {
+      tipoMovimiento = funcionarioId ? 'ASIGNACION' : 'DEVOLUCION';
+      notasHistorial = `Estado cambiado a ${validatedData.estado} y responsable ${funcionarioId ? 'asignado' : 'retirado'}.`;
+    } else if (funcionarioCambio) {
+      tipoMovimiento = funcionarioId ? 'ASIGNACION' : 'DEVOLUCION';
+      notasHistorial = funcionarioId ? 'Equipo asignado a responsable.' : 'Equipo devuelto a bodega (sin responsable).';
+    } else if (estadoCambio) {
+      tipoMovimiento = validatedData.estado === 'BAJA' ? 'BAJA' : 'MODIFICACION';
+      notasHistorial = `Estado cambiado de ${existing.estado} a ${validatedData.estado}.`;
+    }
+
+    await prisma.historialEquipo.create({
+      data: {
+        equipoId: id,
+        funcionarioId,
+        usuarioId: userId,
+        estado: validatedData.estado,
+        tipoMovimiento,
+        notas: notasHistorial,
+        organizacionId: orgId,
+      },
+    });
+
     revalidatePath('/dashboard/equipos');
     revalidatePath(`/dashboard/equipos/${id}`);
     if (funcionarioId) {
@@ -197,7 +239,7 @@ export async function deleteEquipo(id: string) {
       return { success: false, error: 'Equipo no encontrado o no pertenece a tu organización' };
     }
 
-    // Eliminar equipo
+    // Eliminar equipo (el historial se eliminará por cascade)
     await prisma.equipo.delete({
       where: { id },
     });
@@ -212,5 +254,32 @@ export async function deleteEquipo(id: string) {
     console.error('Error en deleteEquipo:', error);
     const message = error instanceof Error ? error.message : 'Error al eliminar equipo';
     return { success: false, error: message };
+  }
+}
+
+export async function getEquipoHistorial(equipoId: string) {
+  try {
+    const { orgId } = await getValidatedSession();
+    return await prisma.historialEquipo.findMany({
+      where: { equipoId, organizacionId: orgId },
+      include: {
+        funcionario: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+        usuario: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (error) {
+    console.error('Error en getEquipoHistorial:', error);
+    return [];
   }
 }

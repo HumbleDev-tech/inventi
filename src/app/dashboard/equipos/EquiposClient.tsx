@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Search, Laptop, Monitor, Printer, Smartphone, HelpCircle, Eye, Trash2, SlidersHorizontal } from 'lucide-react';
+import { Search, Laptop, Monitor, Printer, Smartphone, HelpCircle, Eye, Trash2, SlidersHorizontal, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,6 +10,7 @@ import { deleteEquipo } from '@/actions/equipos';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { exportToCSV } from '@/lib/export';
 
 interface FuncionarioRef {
   id: string;
@@ -152,7 +153,38 @@ export function EquiposClient({ initialEquipos }: EquiposClientProps) {
               </SelectContent>
             </Select>
 
-            <Link href="/dashboard/equipos/nuevo" className="w-full sm:w-auto sm:ml-auto">
+            {(() => {
+              const handleExportCSV = () => {
+                exportToCSV(
+                  filteredEquipos,
+                  [
+                    { header: 'Tipo', key: 'tipo' },
+                    { header: 'Marca', key: 'marca' },
+                    { header: 'Modelo', key: 'modelo' },
+                    { header: 'Número de Serie', key: 'serial' },
+                    { header: 'Dirección IP', key: 'ip' },
+                    { header: 'Dirección MAC', key: 'mac' },
+                    { header: 'Estado', key: 'estado' },
+                    { header: 'Responsable', key: (eq) => eq.funcionario?.nombre || 'Sin asignar' },
+                  ],
+                  'equipos'
+                );
+              };
+
+              return (
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleExportCSV}
+                  className="w-full sm:w-auto gap-2 border-muted"
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </Button>
+              );
+            })()}
+
+            <Link href="/dashboard/equipos/nuevo" className="w-full sm:w-auto">
               <Button className="w-full gap-2 shadow-md hover:shadow-lg transition-all">
                 <Laptop className="h-4 w-4" />
                 Nuevo Equipo

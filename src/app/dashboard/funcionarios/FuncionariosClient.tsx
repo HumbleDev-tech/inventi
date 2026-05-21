@@ -2,13 +2,14 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Search, UserPlus, Phone, Mail, FileText, Trash2 } from 'lucide-react';
+import { Search, UserPlus, Phone, Mail, FileText, Trash2, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { deleteFuncionario } from '@/actions/funcionarios';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { exportToCSV } from '@/lib/export';
 
 interface Funcionario {
   id: string;
@@ -58,6 +59,21 @@ export function FuncionariosClient({ initialFuncionarios }: FuncionariosClientPr
     }
   };
 
+  const handleExportCSV = () => {
+    exportToCSV(
+      filteredFuncionarios,
+      [
+        { header: 'Nombre', key: 'nombre' },
+        { header: 'RUT', key: 'rut' },
+        { header: 'Cargo', key: 'cargo' },
+        { header: 'Departamento', key: 'departamento' },
+        { header: 'Teléfono', key: 'telefono' },
+        { header: 'Email', key: 'email' },
+      ],
+      'funcionarios'
+    );
+  };
+
   return (
     <Card className="border border-border bg-card/60 backdrop-blur-md shadow-lg rounded-xl overflow-hidden">
       <CardContent className="p-6 space-y-6">
@@ -71,12 +87,23 @@ export function FuncionariosClient({ initialFuncionarios }: FuncionariosClientPr
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Link href="/dashboard/funcionarios/nuevo" className="w-full sm:w-auto">
-            <Button className="w-full gap-2 shadow-md hover:shadow-lg transition-all">
-              <UserPlus className="h-4 w-4" />
-              Nuevo Funcionario
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={handleExportCSV}
+              className="w-full sm:w-auto gap-2 border-muted"
+            >
+              <Download className="h-4 w-4" />
+              Exportar CSV
             </Button>
-          </Link>
+            <Link href="/dashboard/funcionarios/nuevo" className="w-full sm:w-auto">
+              <Button className="w-full gap-2 shadow-md hover:shadow-lg transition-all">
+                <UserPlus className="h-4 w-4" />
+                Nuevo Funcionario
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="rounded-lg border border-muted/50 overflow-hidden">

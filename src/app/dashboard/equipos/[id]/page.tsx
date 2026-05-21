@@ -1,4 +1,4 @@
-import { getEquipoById } from '@/actions/equipos';
+import { getEquipoById, getEquipoHistorial } from '@/actions/equipos';
 import { getFuncionarios } from '@/actions/funcionarios';
 import { notFound } from 'next/navigation';
 import { EditEquipoClient } from './EditEquipoClient';
@@ -12,6 +12,7 @@ interface PageProps {
 export default async function DetalleEquipoPage({ params }: PageProps) {
   const equipo = await getEquipoById(params.id);
   const funcionarios = await getFuncionarios();
+  const historial = await getEquipoHistorial(params.id);
 
   if (!equipo) {
     notFound();
@@ -37,10 +38,25 @@ export default async function DetalleEquipoPage({ params }: PageProps) {
     nombre: f.nombre,
   }));
 
+  const formattedHistorial = historial.map((h) => ({
+    id: h.id,
+    tipoMovimiento: h.tipoMovimiento,
+    estado: h.estado,
+    notas: h.notas,
+    createdAt: h.createdAt.toISOString(),
+    usuario: {
+      nombre: h.usuario.nombre,
+    },
+    funcionario: h.funcionario ? {
+      nombre: h.funcionario.nombre,
+    } : null,
+  }));
+
   return (
     <EditEquipoClient 
       equipo={formattedEquipo} 
       funcionarios={formattedFuncionarios} 
+      historial={formattedHistorial}
     />
   );
 }
